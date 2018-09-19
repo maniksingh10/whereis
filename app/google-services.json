@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "659400070552",
+    "firebase_url": "https://whereisthebus-7a1b1.firebaseio.com",
+    "project_id": "whereisthebus-7a1b1",
+    "storage_bucket": "whereisthebus-7a1b1.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:659400070552:android:089ee06a6a8c91d3",
+        "android_client_info": {
+          "package_name": "com.manik.whereisthebus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "659400070552-4v53pkcqol0asrrc3gdiagbaod001mln.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.manik.whereisthebus",
+            "certificate_hash": "64e6227b1f729825c9e0e1b6afaa18c6304dd348"
+          }
+        },
+        {
+          "client_id": "659400070552-13mt6nn9iijrnnf6877b6k038ve07ipp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMX-z55ZkoRlPPn40I-at1UpTdzKXFXxo"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "659400070552-13mt6nn9iijrnnf6877b6k038ve07ipp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
