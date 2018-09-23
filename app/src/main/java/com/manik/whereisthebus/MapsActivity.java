@@ -33,6 +33,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -44,13 +45,14 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, LocationListener {
+public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private static final String TAG = "Hereeee";
     private GoogleMap mMap;
     private DatabaseReference databaseReference;
     private double lat, logi;
     private Switch aSwitch;
+    private LListener lListener;
     private String currentDate = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss aa", Locale.getDefault()).format(new Date());
     private LocationManager locationManager;
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
@@ -62,25 +64,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         aSwitch = findViewById(R.id.onoff);
         databaseReference = FirebaseDatabase.getInstance().getReference("BusLocation");
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-
-        aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    sendLocation();
-                } else {
-                    whereis();
-                }
-            }
-        });
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
+        aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+
+                    sendLocation();
+                } else {
+
+                    whereis();
+                }
+            }
+        });
 
     }
 
@@ -178,7 +180,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
+        lListener = new LListener(this, mMap,databaseReference);
         mMap.setTrafficEnabled(true);
         whereis();
 
@@ -187,20 +189,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void sendLocation() {
         mMap.clear();
+        displayLocationSettingsRequest(this);
         if (checkPermission()) {
-            checkPermission();
             mMap.setMyLocationEnabled(true);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 100, this);
-
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 100, lListener);
         }
 
     }
 
 
+
     private void whereis() {
-        locationManager.removeUpdates(this);
-
-
+        locationManager.removeUpdates(lListener);
+        if (checkPermission()){
+            mMap.setMyLocationEnabled(false);
+        }
+        mMap.clear();
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -213,10 +217,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.clear();
                     mMap.addMarker(new MarkerOptions().position(new LatLng(lat, logi)).title("I am Hereee").icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, logi)));
-                    mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+                    mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
             }
@@ -224,6 +227,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+
+
+
+
+
+
+
+
+
+/*
 
     @Override
     public void onLocationChanged(Location location) {
@@ -256,5 +269,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(getApplicationContext(), "GPS OFFFF", Toast.LENGTH_SHORT).show();
         displayLocationSettingsRequest(this);
     }
+
+    */
 
 }
