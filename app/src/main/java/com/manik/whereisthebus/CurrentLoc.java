@@ -18,7 +18,6 @@ public class CurrentLoc implements LocationListener {
         lat= location.getLatitude();
         logi = location.getLongitude();
         Toast.makeText(context,lat +" "+logi,Toast.LENGTH_LONG).show();
-
     }
 
     @Override

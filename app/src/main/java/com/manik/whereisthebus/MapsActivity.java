@@ -5,11 +5,14 @@ import android.content.Context;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Criteria;
+import android.location.GpsSatellite;
+import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -22,6 +25,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
@@ -43,6 +47,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Locale;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -64,7 +69,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         aSwitch = findViewById(R.id.onoff);
         databaseReference = FirebaseDatabase.getInstance().getReference("BusLocation");
-
+        checkPermission();
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -83,6 +88,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         });
+
 
     }
 
@@ -180,7 +186,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        lListener = new LListener(this, mMap,databaseReference);
+        lListener = new LListener(this, mMap, databaseReference);
         mMap.setTrafficEnabled(true);
         whereis();
 
@@ -191,17 +197,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.clear();
         displayLocationSettingsRequest(this);
         if (checkPermission()) {
+
             mMap.setMyLocationEnabled(true);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 100, lListener);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 100, lListener);
         }
 
     }
 
 
-
     private void whereis() {
+
         locationManager.removeUpdates(lListener);
-        if (checkPermission()){
+
+        if (checkPermission()) {
             mMap.setMyLocationEnabled(false);
         }
         mMap.clear();
@@ -220,6 +228,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
                 }
             }
+
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
             }
@@ -227,17 +236,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        locationManager.removeUpdates(lListener);
 
 
+    }
 
-
-
-
-
-
-
-/*
-
+    /*
     @Override
     public void onLocationChanged(Location location) {
         double latitude = location.getLatitude();
@@ -270,6 +277,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         displayLocationSettingsRequest(this);
     }
 
-    */
+*/
 
 }
