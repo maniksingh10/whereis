@@ -50,10 +50,7 @@ public class LListener implements LocationListener{
         mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
 
-        String key = databaseReference.push().getKey();
-        ULocation uLocation = new ULocation(lklat, lklong, currentDate);
-        databaseReference.child(key).setValue(uLocation);
-        databaseReference.child("locate").setValue(uLocation);
+
 
     }
 

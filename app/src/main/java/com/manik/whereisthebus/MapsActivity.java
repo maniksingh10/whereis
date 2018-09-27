@@ -16,17 +16,23 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.text.format.DateFormat;
 import android.util.Log;
+import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
@@ -39,6 +45,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -57,15 +64,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private DatabaseReference databaseReference;
     private double lat, logi;
     private Switch aSwitch;
-    private LListener lListener;
-    private String currentDate = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss aa", Locale.getDefault()).format(new Date());
-    private LocationManager locationManager;
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
+
+
+    private FusedLocationProviderClient mFusedLocationClient;
+    private LocationRequest locationRequest;
+    private LocationCallback locationCallback;
+    private boolean isUpdateOn = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
+
 
         aSwitch = findViewById(R.id.onoff);
         databaseReference = FirebaseDatabase.getInstance().getReference("BusLocation");
@@ -74,22 +85,142 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+
+        /*locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);*/
+
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
+        locationRequest = new LocationRequest();
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(5000);
+
 
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-
-                    sendLocation();
+                    locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+                    isUpdateOn = true;
+                    startLocation();
+                    //sendLocation();
                 } else {
-
-                    whereis();
+                    isUpdateOn = false;
+                    stopLocation();
+                    // whereis();
                 }
             }
         });
 
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                for (Location location : locationResult.getLocations()) {
+                    if (location != null) {
+                        String currentDate = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss aa", Locale.getDefault()).format(new Date());
 
+                        Toast.makeText(getApplicationContext(), "New Lat is " + String.valueOf(location.getLatitude()) + " \nlong is " +
+                                String.valueOf(location.getLongitude()) + " \nAcc is " + String.valueOf(location.getAccuracy()) + " \nAlt is "  +
+                                        String.valueOf(location.getAltitude()), Toast.LENGTH_SHORT).show();
+
+                        String key = databaseReference.push().getKey();
+                        ULocation uLocation = new ULocation(location.getLatitude(),location.getLongitude(), currentDate);
+                        databaseReference.child(key).setValue(uLocation);
+                        databaseReference.child("locate").setValue(uLocation);
+                        mMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("Time was " + convertDate(location.getTime(), "dd/MM/yyyy hh:mm:ss")));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+                        mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
+                    }
+                }
+            }
+        };
+    }
+
+    private void stopLocation() {
+        mFusedLocationClient.removeLocationUpdates(locationCallback);
+whereis();
+       }
+
+    private void startLocation() {
+        if(checkPermission()){
+            displayLocationSettingsRequest(this);
+            mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
+
+        }else{
+            checkPermission();
+        }
+    }
+
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        //lListener = new LListener(this, mMap, databaseReference);
+        mMap.setTrafficEnabled(true);
+        mMap.setMaxZoomPreference(16.0f);
+stopLocation();
+
+
+    }
+
+    private void whereis() {
+
+        databaseReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    ULocation location = snapshot.getValue(ULocation.class);
+                    lat = location.getLat();
+                    logi = location.getLongi();
+                }
+                if (!isUpdateOn) {
+                    mMap.clear();
+                    mMap.addMarker(new MarkerOptions().position(new LatLng(lat, logi)).title("I am Hereee").icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, logi)));
+                    mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
+        });
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public String convertDate(long dateInMilliseconds, String dateFormat) {
+        return String.valueOf(DateFormat.format(dateFormat, dateInMilliseconds));
     }
 
 
@@ -97,11 +228,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         GoogleApiClient googleApiClient = new GoogleApiClient.Builder(context)
                 .addApi(LocationServices.API).build();
         googleApiClient.connect();
-
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(10000 / 2);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest);
         builder.setAlwaysShow(true);
@@ -138,7 +264,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     public boolean checkPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
@@ -183,66 +309,47 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        lListener = new LListener(this, mMap, databaseReference);
-        mMap.setTrafficEnabled(true);
-        whereis();
 
-    }
-
-
-    private void sendLocation() {
-        mMap.clear();
-        displayLocationSettingsRequest(this);
-        if (checkPermission()) {
-
-            mMap.setMyLocationEnabled(true);
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 100, lListener);
-        }
-
-    }
-
-
-    private void whereis() {
-
-        locationManager.removeUpdates(lListener);
-
-        if (checkPermission()) {
-            mMap.setMyLocationEnabled(false);
-        }
-        mMap.clear();
-        databaseReference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    ULocation location = snapshot.getValue(ULocation.class);
-                    lat = location.getLat();
-                    logi = location.getLongi();
-                }
-                if (!aSwitch.isChecked()) {
-                    mMap.clear();
-                    mMap.addMarker(new MarkerOptions().position(new LatLng(lat, logi)).title("I am Hereee").icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, logi)));
-                    mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-            }
-        });
-
-    }
+//    private void sendLocation() {
+//        mMap.clear();
+//        displayLocationSettingsRequest(this);
+//        if (checkPermission()) {
+//
+//            mMap.setMyLocationEnabled(true);
+//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 100, lListener);
+//        }
+//
+//    }
+//
+//
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        locationManager.removeUpdates(lListener);
+      //  locationManager.removeUpdates(lListener);
 
 
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /*
     @Override
