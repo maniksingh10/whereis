@@ -16,6 +16,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.support.v4.app.FragmentManager;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.View;
@@ -30,6 +31,7 @@ import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
@@ -66,7 +68,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Switch aSwitch;
     protected static final int REQUEST_CHECK_SETTINGS = 0x1;
 
-
+    private DatabaseReference msgdb;
     private FusedLocationProviderClient mFusedLocationClient;
     private LocationRequest locationRequest;
     private LocationCallback locationCallback;
@@ -77,23 +79,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
 
-
+        msgdb = FirebaseDatabase.getInstance().getReference("msges");
         aSwitch = findViewById(R.id.onoff);
         databaseReference = FirebaseDatabase.getInstance().getReference("BusLocation");
+        msgdb = FirebaseDatabase.getInstance().getReference("msges");
         checkPermission();
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        locationRequest = new LocationRequest();
+        locationRequest.setInterval(10000);
+        locationRequest.setFastestInterval(5000);
+
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
-        /*locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);*/
-
-
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-
-        locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(5000);
 
 
         aSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -103,11 +103,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
                     isUpdateOn = true;
                     startLocation();
-                    //sendLocation();
+
                 } else {
                     isUpdateOn = false;
-                    stopLocation();
-                    // whereis();
+                    whereis();
+
                 }
             }
         });
@@ -121,11 +121,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         String currentDate = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss aa", Locale.getDefault()).format(new Date());
 
                         Toast.makeText(getApplicationContext(), "New Lat is " + String.valueOf(location.getLatitude()) + " \nlong is " +
-                                String.valueOf(location.getLongitude()) + " \nAcc is " + String.valueOf(location.getAccuracy()) + " \nAlt is "  +
-                                        String.valueOf(location.getAltitude()), Toast.LENGTH_SHORT).show();
+                                String.valueOf(location.getLongitude()) + " \nAcc is " + String.valueOf(location.getAccuracy()) + " \nAlt is " +
+                                String.valueOf(location.getAltitude()), Toast.LENGTH_SHORT).show();
 
                         String key = databaseReference.push().getKey();
-                        ULocation uLocation = new ULocation(location.getLatitude(),location.getLongitude(), currentDate);
+                        ULocation uLocation = new ULocation(location.getLatitude(), location.getLongitude(), currentDate);
                         databaseReference.child(key).setValue(uLocation);
                         databaseReference.child("locate").setValue(uLocation);
                         mMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("Time was " + convertDate(location.getTime(), "dd/MM/yyyy hh:mm:ss")));
@@ -134,20 +134,19 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     }
                 }
             }
+
         };
+
+
     }
 
-    private void stopLocation() {
-        mFusedLocationClient.removeLocationUpdates(locationCallback);
-whereis();
-       }
 
     private void startLocation() {
-        if(checkPermission()){
+        if (checkPermission()) {
             displayLocationSettingsRequest(this);
             mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
 
-        }else{
+        } else {
             checkPermission();
         }
     }
@@ -156,16 +155,16 @@ whereis();
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        //lListener = new LListener(this, mMap, databaseReference);
-        mMap.setTrafficEnabled(true);
         mMap.setMaxZoomPreference(16.0f);
-stopLocation();
-
+        mMap.setTrafficEnabled(true);
+        whereis();
 
     }
 
-    private void whereis() {
+    String time;
 
+    private void whereis() {
+        mFusedLocationClient.removeLocationUpdates(locationCallback);
         databaseReference.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -173,11 +172,12 @@ stopLocation();
                     ULocation location = snapshot.getValue(ULocation.class);
                     lat = location.getLat();
                     logi = location.getLongi();
+                    time = location.getUsername();
                 }
                 if (!isUpdateOn) {
                     mMap.clear();
-                    mMap.addMarker(new MarkerOptions().position(new LatLng(lat, logi)).title("I am Hereee").icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
                     mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, logi)));
+                    mMap.addMarker(new MarkerOptions().position(new LatLng(lat, logi)).title(time).icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
                     mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
                 }
             }
@@ -188,35 +188,6 @@ stopLocation();
         });
 
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     public String convertDate(long dateInMilliseconds, String dateFormat) {
@@ -264,7 +235,7 @@ stopLocation();
 
 
     public boolean checkPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
             // here to request the missing permissions, and then overriding
@@ -309,81 +280,5 @@ stopLocation();
         }
     }
 
-
-//    private void sendLocation() {
-//        mMap.clear();
-//        displayLocationSettingsRequest(this);
-//        if (checkPermission()) {
-//
-//            mMap.setMyLocationEnabled(true);
-//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 100, lListener);
-//        }
-//
-//    }
-//
-//
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-      //  locationManager.removeUpdates(lListener);
-
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /*
-    @Override
-    public void onLocationChanged(Location location) {
-        double latitude = location.getLatitude();
-        double longitude = location.getLongitude();
-        LatLng latLng = new LatLng(latitude, longitude);
-        mMap.clear();
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-
-        String key = databaseReference.push().getKey();
-        ULocation uLocation = new ULocation(latitude, longitude, currentDate);
-
-        databaseReference.child("locate").setValue(uLocation);
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-        Toast.makeText(getApplicationContext(), provider + "  Changing", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-        Toast.makeText(getApplicationContext(), "GPS ONNNNN", Toast.LENGTH_SHORT).show();
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-        aSwitch.setChecked(false);
-        Toast.makeText(getApplicationContext(), "GPS OFFFF", Toast.LENGTH_SHORT).show();
-        displayLocationSettingsRequest(this);
-    }
-
-*/
 
 }

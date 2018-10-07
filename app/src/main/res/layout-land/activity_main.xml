@@ -1,30 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-<android.support.constraint.ConstraintLayout
     android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
     tools:context=".MainActivity">
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="180dp"
+        android:layout_height="172dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="8dp"
-        android:layout_marginRight="16dp"
         android:text="Thanks For Installing the app, If this crashes do lemme know.\n\n\nSwitch on the button to move the car and switch it off and it turns off. "
         android:textAlignment="center"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
@@ -32,12 +25,12 @@
         android:layout_width="wrap_content"
         android:layout_height="29dp"
         android:layout_gravity="center"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
         android:layout_marginEnd="8dp"
         android:background="#ff7043"
         android:text="Start"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/textView"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView" />
 
@@ -48,14 +41,13 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:layout_marginBottom="8dp"
-
+        android:layout_marginBottom="16dp"
+        android:background="#999999"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button">
+        app:layout_constraintStart_toEndOf="@+id/textView"
+        app:layout_constraintTop_toTopOf="parent">
 
     </FrameLayout>
 
 </android.support.constraint.ConstraintLayout>
-</ScrollView>
