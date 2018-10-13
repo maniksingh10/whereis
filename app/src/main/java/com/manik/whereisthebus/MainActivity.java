@@ -6,6 +6,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.LocaleList;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
@@ -26,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         parent= findViewById(R.id.root);
         Snackbar.make(parent,"Thankssss!!! It means a lot :)",Snackbar.LENGTH_LONG).show();
-        Button button = findViewById(R.id.button);
+        FloatingActionButton button = findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

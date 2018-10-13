@@ -53,11 +53,17 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.maps.GeoApiContext;
+
+import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -120,15 +126,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (location != null) {
                         String currentDate = new SimpleDateFormat("dd-MMM-yyyy hh:mm:ss aa", Locale.getDefault()).format(new Date());
 
-                        Toast.makeText(getApplicationContext(), "New Lat is " + String.valueOf(location.getLatitude()) + " \nlong is " +
-                                String.valueOf(location.getLongitude()) + " \nAcc is " + String.valueOf(location.getAccuracy()) + " \nAlt is " +
-                                String.valueOf(location.getAltitude()), Toast.LENGTH_SHORT).show();
-
                         String key = databaseReference.push().getKey();
                         ULocation uLocation = new ULocation(location.getLatitude(), location.getLongitude(), currentDate);
-                        databaseReference.child(key).setValue(uLocation);
                         databaseReference.child("locate").setValue(uLocation);
-                        mMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("Time was " + convertDate(location.getTime(), "dd/MM/yyyy hh:mm:ss")));
+                        mMap.addMarker(new MarkerOptions().position(new LatLng(location.getLatitude(), location.getLongitude())).title("Time was " + convertDate(location.getTime(), "dd/MM/yyyy hh:mm:ss")).icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
                         mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
                         mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
                     }
@@ -139,6 +140,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
 
     }
+
+
+
+
+
+
+
+
+
 
 
     private void startLocation() {
@@ -156,8 +166,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.setMaxZoomPreference(16.0f);
+     whereis();
         mMap.setTrafficEnabled(true);
-        whereis();
 
     }
 
@@ -176,9 +186,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 if (!isUpdateOn) {
                     mMap.clear();
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(lat, logi)));
-                    mMap.addMarker(new MarkerOptions().position(new LatLng(lat, logi)).title(time).icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
+                    LatLng latLng = new LatLng(lat, logi);
+                    LatLng latLng1 = new LatLng(lat, 77.1095272);
+                    mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+                    mMap.addMarker(new MarkerOptions().position(latLng).title(time).icon(BitmapDescriptorFactory.fromResource(R.drawable.img)));
                     mMap.animateCamera(CameraUpdateFactory.zoomTo(14));
+                    GoogleMapsPath googleMapsPath = new GoogleMapsPath(MapsActivity.this,mMap,latLng,latLng1);
                 }
             }
 
